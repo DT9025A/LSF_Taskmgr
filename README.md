@@ -15,3 +15,7 @@ X11 environment: gcc lib -lX11
 To run:
 
 make clean && make
+
+---
+
+comment: basic code by deepseek-v4.1-flash, liangzu huigui
