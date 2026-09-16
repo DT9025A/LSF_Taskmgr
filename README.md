@@ -28,7 +28,7 @@ The individual job rows follow underneath, with the full `bjobs` columns (JobID,
 
 ![./images/nodes.png](./images/nodes.png)
 
-Presents the cluster from the **queue's point of view**. It parses `bqueues -l` to obtain the host list of each queue (e.g. `h_queue`, `m_queue`, `l_queue` defined in view_nodes.c), then enriches every node with its `bhosts` status and `lsload` utilization.
+Presents the cluster from the **queue's point of view**. It parses `bqueues -l` to obtain the host list of each queue (e.g. `h_queue`, `m_queue`, `l_queue` defined in `src/view_nodes.c`), then enriches every node with its `bhosts` status and `lsload` utilization.
 
 Nodes are sorted into three groups and visually differentiated:
 
@@ -146,7 +146,7 @@ The data collection timestamp is shown in the top-right corner as `Data: YYYY-MM
 | X11 development headers | `libX11` 1.6 | Provides `<X11/Xlib.h>`, `<X11/Xutil.h>`, `<X11/keysym.h>` |
 | X11 runtime library | `libX11` 1.6 | Linked with `-lX11` |
 
-### 1.2 Runtime requirements
+### Runtime requirements
 
 | Item | Notes |
 |---|---|
@@ -157,7 +157,7 @@ The data collection timestamp is shown in the top-right corner as `Data: YYYY-MM
 
 The UI degrades gracefully if some LSF commands are missing: the affected tab will show a placeholder line rather than crashing.
 
-### 1.3 Non-requirements
+### Non-requirements
 
 - **No Python** at runtime or build time.
 - **No Qt / GTK / ncurses** — only `libX11`.
