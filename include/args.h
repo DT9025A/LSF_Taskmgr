@@ -4,9 +4,10 @@
 #include <stddef.h>
 
 enum {SHOW_NULL = 0, SHOW_HELP, SHOW_VERSION};
+enum {KILL_DISABLE = 0, KILL_ENABLE, KILL_ALL_ENABLE};
 
 typedef struct {
-    unsigned char enable_kill; //-k ok
+    unsigned char kill_config; //-k[a] ok
     char *font; //-f ok
     int  avg_threshold; //-t ok
     int  jobs_referesh_interval; //-ij

@@ -5,7 +5,7 @@
 #include <string.h>
 
 AppArgsConf appConfig = {
-    KILL_ENABLE, 
+    KILL_CONFIG, 
     MONO_FONT, 
     CPU_USAGE_THRESHOLD, 
     AUTO_REFRESH_JOBS, 
@@ -31,8 +31,17 @@ int index_args(int argc, char** argv) {
                 return SHOW_VERSION;
                 
             case 'k':
-                appConfig.enable_kill = TRUE;
-                printf("Custom config applied: Kill enable = TRUE.\n");
+                if (argv[i][2]) {
+                    if (argv[i][2] == 'a') {
+                        appConfig.kill_config = KILL_ALL_ENABLE;
+                        printf("Custom config applied: Kill +ALL enable = TRUE.\n");
+                    } else {
+                        goto __errhandler;
+                    }
+                } else {
+                    appConfig.kill_config = KILL_ENABLE;
+                    printf("Custom config applied: Kill enable = TRUE.\n");
+                }
                 break;
                 
             case 'f':
@@ -67,8 +76,9 @@ int index_args(int argc, char** argv) {
                         break;
                 }
                 break;
-                
+
             default:
+__errhandler:
                 printf("Unrecognized argument %s.\n", argv[i]);
                 break;
         }

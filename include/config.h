@@ -36,12 +36,12 @@
 /* Confirmation window for bkill (seconds) */
 #define KILL_CONFIRM_SECS     5
 // use -DKILL_ENABLE
-#define KILL_ENABLE           FALSE
+#define KILL_CONFIG           FALSE
 
 #define CPU_USAGE_THRESHOLD   40
 
 #define WINDOW_TITLE               "LSF Task Manager"
 #define APPLICATION_VERSION_MAJOR  1
-#define APPLICATION_VERSION_MINOR  22
+#define APPLICATION_VERSION_MINOR  34
 
 #endif

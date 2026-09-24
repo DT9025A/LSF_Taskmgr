@@ -181,14 +181,17 @@ static void render(App *a) {
     const char *hint;
     time_t now = time(NULL);
 
+    
     if (a->pending_kill_job && now - a->pending_kill_time < KILL_CONFIRM_SECS) {
-        if (appConfig.enable_kill) {
+        if (strcmp(a->pending_kill_job, "*ALL*") == 0) {
+            snprintf(sbuf, sizeof(sbuf),
+                     "Press SHIFT+K again to CONFIRM killing ALL jobs");
+        } else {
             snprintf(sbuf, sizeof(sbuf),
                      "Press k again to CONFIRM kill of job %s",
                      a->pending_kill_job);
-            hint = sbuf;
-        } else
-            hint = "Job kill function is disabled, use -k to enable this function.";
+        }
+        hint = sbuf;
     } else if (a->status_msg[0] && now - a->status_msg_time < KILL_CONFIRM_SECS) {
         hint = a->status_msg;
     } else if (a->selected_line >= 0 && a->selected_line < a->lines.count &&
@@ -199,8 +202,13 @@ static void render(App *a) {
     } else if (a->mode == MODE_INFO) {
         hint = "Type job IDs, Enter to query, Esc to clear";
     } else {
-        hint = "1-4 switch   r refresh   q quit   click row to select   "
-               "k kill   l locate   wheel/PgUp/Dn scroll";
+        static char hintbuf[256];
+        snprintf(hintbuf, sizeof(hintbuf),
+                 "1-4 switch, r refresh, q quit, "
+                 "click row to select, k kill, l locate"
+                 "%s",
+                 (appConfig.kill_config & KILL_ALL_ENABLE) ? ", SHIFT+K kill all" : "");
+        hint = hintbuf;
     }
     draw_text(a, 8, a->height - 20, hint, C_WHITE);
 
@@ -267,6 +275,14 @@ static void set_mode(App *a, int m) {
  *  Key handling
  * --------------------------------------------------------------- */
 static void do_kill(App *a) {
+
+    if (!appConfig.kill_config) {
+        snprintf(a->status_msg, sizeof(a->status_msg),
+                 "Kill function disabled. Restart with -k to enable.");
+        a->status_msg_time = time(NULL);
+        return;
+    }
+
     if (a->selected_line < 0 || a->selected_line >= a->lines.count) {
         snprintf(a->status_msg, sizeof(a->status_msg), "No row selected.");
         a->status_msg_time = time(NULL);
@@ -286,10 +302,10 @@ static void do_kill(App *a) {
         strcmp(a->pending_kill_job, l->job_id) == 0 &&
         now - a->pending_kill_time < KILL_CONFIRM_SECS) {
         /* confirmed -> run bkill */
-        if (appConfig.enable_kill) {
+        if (appConfig.kill_config) {
             char cmd[160];
             snprintf(cmd, sizeof(cmd), "bkill %s", l->job_id);
-            printf ("Kill command execute: \"%s\" ", cmd);
+            printf ("Kill command execute: \"%s\"\n", cmd);
             char *out = run_cmd(cmd);
             snprintf(a->status_msg, sizeof(a->status_msg),
                      "bkill %s -> %s",
@@ -305,6 +321,37 @@ static void do_kill(App *a) {
         /* first press -> ask for confirmation */
         clear_pending_kill(a);
         a->pending_kill_job  = xstrdup(l->job_id);
+        a->pending_kill_time = now;
+        a->status_msg[0] = 0;
+    }
+}
+
+static void do_kill_all(App *a) {
+
+    if (!(appConfig.kill_config & KILL_ALL_ENABLE)) {
+        snprintf(a->status_msg, sizeof(a->status_msg),
+                 "Kill-all function disabled. Restart with -ka to enable.");
+        a->status_msg_time = time(NULL);
+        return;
+    }
+
+    time_t now = time(NULL);
+    if (a->pending_kill_job &&
+        strcmp(a->pending_kill_job, "*ALL*") == 0 &&
+        now - a->pending_kill_time < KILL_CONFIRM_SECS) {
+        /* confirmed -> run bkill 0 (kill all jobs owned by this user) */
+        char *out = run_cmd("bkill 0 2>&1");
+        printf ("Kill-all command execute: \"bkill 0 2>&1\"\n");
+        snprintf(a->status_msg, sizeof(a->status_msg),
+                 "bkill 0 -> All jobs will be killed.");
+        free(out);
+        clear_pending_kill(a);
+        a->status_msg_time = time(NULL);
+        a->selected_line   = -1;
+        a->collect_pending = 1;
+    } else {
+        clear_pending_kill(a);
+        a->pending_kill_job  = xstrdup("*ALL*");
         a->pending_kill_time = now;
         a->status_msg[0] = 0;
     }
@@ -414,7 +461,8 @@ static void on_key(App *a, XKeyEvent *e) {
             clear_pending_kill(a);
             a->collect_pending = 1; return;
         case 'q': case 'Q': a->running = 0; return;
-        case 'k': case 'K': do_kill(a); render(a); return;
+        case 'k': do_kill(a);     render(a); return;
+        case 'K': do_kill_all(a); render(a); return;
         case 'l': case 'L': do_locate(a); render(a); return;
         }
     }
@@ -534,7 +582,7 @@ int app_run(void) {
                                 WhitePixel(a.dpy, a.screen));
     
     snprintf (title, sizeof(title), "%s v%d.%d%s", WINDOW_TITLE, 
-        APPLICATION_VERSION_MAJOR, APPLICATION_VERSION_MINOR, appConfig.enable_kill ? " [+Kill]" : "");
+        APPLICATION_VERSION_MAJOR, APPLICATION_VERSION_MINOR, appConfig.kill_config ? ((appConfig.kill_config & KILL_ENABLE) ? " [+Kill]" : " [+KillAll]") : "");
     
     XStoreName(a.dpy, a.win, title);
     XSelectInput(a.dpy, a.win,
